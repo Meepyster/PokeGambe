@@ -19,4 +19,6 @@ The hardest part was easily separating views. Because I wanted to develop as fas
 - Calculate score based on dex value, balance and maybe more values
 - More options such as playing with real world values
 - reset history
+- Add sound effects
 - Many More!
+
