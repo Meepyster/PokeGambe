@@ -44,7 +44,7 @@ struct ContentView: View {
     @State private var cardResponse: CardResponse?
     @State private var currentQuote = ""
     @State private var profit: Double = 0
-    @AppStorage("balance") private var balance: Double = 0
+    @AppStorage("balance") private var balance: Double = 60
     @State private var showGains: Bool = false
     @State private var gains: Double = 0
     @State private var showDex: Bool = false
@@ -217,9 +217,10 @@ struct ContentView: View {
                             VStack{
                                 Text(histCardToShow!.cardTitle)
                                     .font(.system(size: 28, weight: .bold))
-                                    .foregroundColor(colorForRarity(histCardToShow!.rarity))
-                                    .shadow(radius: 3)
+                                    .foregroundStyle(colorForRarity(histCardToShow!.rarity))
+                                    .shadow(color: .black ,radius: 1)
                                     .bold()
+                                    .multilineTextAlignment(.center)
                                 AsyncImage(url: URL(string: histCardToShow!.cardImage)) { phase in
                                     switch phase {
                                     case .empty:
@@ -240,7 +241,7 @@ struct ContentView: View {
                                         EmptyView()
                                     }
                                 }.shadow(radius: 3)
-                                Text("Value: \(String(format: "%.2f", histCardToShow!.value))")
+                                Text("$\(String(format: "%.2f", histCardToShow!.value))")
                                     .font(.system(size: 23))
                                     .foregroundColor(.white)
                                     .bold(true)
@@ -397,12 +398,7 @@ struct ContentView: View {
                             .shadow(radius: 3)
                         HStack{
                             Button(action: {
-                                do {
-                                    try modelContext.delete(model: DBCard.self)
-                                } catch {
-                                    print("Failed to clear")
-                                }
-                                showConfirm.toggle()
+                                sellDex()
                             }) {
                                 Text("YES")
                                     .font(.headline).bold(true)
@@ -441,9 +437,11 @@ struct ContentView: View {
                             VStack{
                                 Text(cardToShow!.cardTitle)
                                     .font(.system(size: 28, weight: .bold))
-                                    .foregroundColor(colorForRarity(cardToShow!.rarity))
-                                    .shadow(radius: 3)
+                                    .foregroundStyle(colorForRarity(cardToShow!.rarity))
+                                    .shadow(color: .black ,radius: 1)
                                     .bold()
+                                    .multilineTextAlignment(.center)
+                                    .multilineTextAlignment(.center)
                                 AsyncImage(url: URL(string: cardToShow!.cardImage)) { phase in
                                     switch phase {
                                     case .empty:
@@ -464,7 +462,7 @@ struct ContentView: View {
                                         EmptyView()
                                     }
                                 }.shadow(radius: 3)
-                                Text("Value: \(String(format: "%.2f", cardToShow!.value))")
+                                Text("$\(String(format: "%.2f", cardToShow!.value))")
                                     .font(.system(size: 23))
                                     .foregroundColor(.white)
                                     .bold(true)
@@ -491,6 +489,8 @@ struct ContentView: View {
                             if !pulledCards.contains(where: { $0.id == cardToShow!.id }){
                                 showLargeImage.toggle()
                                 balance += cardToShow!.value
+                                dexValue -= cardToShow!.value
+                                dexValue = negZeroCheck(num: dexValue)
                                 modelContext.delete(cardToShow!)
                                 try? modelContext.save()
                             }
@@ -581,15 +581,16 @@ struct ContentView: View {
                     if refreshedView {
                         ZStack{
                             Rectangle().fill(Color.white)
-                                .frame(width: 250, height: 100)
+                                .frame(width: 280, height: 170)
                                 .cornerRadius(25)
                                 .opacity(0.30)
-                            Text("Refreshed\nDex Value")
+                            Text("Refreshed\nDex Value\nCleared\nTemp Files")
                                 .font(.system(size: 30))
                                 .bold(true)
                                 .shadow(radius: 3)
                                 .foregroundColor(.white)
                                 .padding(.leading,10)
+                                .multilineTextAlignment(.center)
                         }.padding(.bottom, 500)
                     }
                 }
@@ -598,6 +599,45 @@ struct ContentView: View {
     }
 
     private func getCards() {
+        if !pulledCards.isEmpty {
+            for card in pulledCards {
+                let savedCard = DBCard(
+                    id: card.id,
+                    cardTitle: card.cardTitle,
+                    name: card.name,
+                    baseExperience: card.baseExperience,
+                    cardImage: card.cardImage,
+                    rarity: card.rarity,
+                    value: card.value,
+                    realMarketValue: card.realMarketValue,
+                    discrepancyRatio: card.discrepancyRatio,
+                    subtypes: card.subtypes
+                )
+                modelContext.insert(savedCard)
+                try? modelContext.save()
+                print("Card saved id: \(savedCard.id)")
+                
+                let savedHistCard = HistCard(
+                    id: card.id,
+                    cardTitle: card.cardTitle,
+                    name: card.name,
+                    baseExperience: card.baseExperience,
+                    cardImage: card.cardImage,
+                    rarity: card.rarity,
+                    value: card.value,
+                    realMarketValue: card.realMarketValue,
+                    discrepancyRatio: card.discrepancyRatio,
+                    subtypes: card.subtypes
+                )
+                modelContext.insert(savedHistCard)
+                try? modelContext.save()
+                
+                // Optional: show confirmation
+                print("Card saved: \(savedCard.name)")
+                print("Card saved in History: \(savedHistCard.name)")
+            }
+        }
+        clearTempDirectory()
         print("trying to get cards")
         for card in pulledCards {
             dexValue += card.value
@@ -646,42 +686,123 @@ struct ContentView: View {
                         dexValue += Double(card.value)
                     }
                 }
+                Task {
+                    clearTempDirectory()
+                }
                 refreshedView = true
             } catch {
                 print("Failed to fetch DBCard objects: \(error)")
             }
         }
     }
+    
+    func clearTempDirectory() {
+        let tempDir = FileManager.default.temporaryDirectory
+        do {
+            let files = try FileManager.default.contentsOfDirectory(atPath: tempDir.path)
+            for file in files {
+                let fileURL = tempDir.appendingPathComponent(file)
+                try FileManager.default.removeItem(at: fileURL)
+            }
+            print("Temporary files cleared.")
+        } catch {
+            print("Failed to clear temp directory: \(error)")
+        }
+    }
+    func sellDex() {
+        balance += dexValue
+        dexValue = 0.00
+        do {
+            try modelContext.delete(model: DBCard.self)
+        } catch {
+            print("Failed to clear")
+        }
+        showConfirm.toggle()
+        clearTempDirectory()
+    }
+
 }
-func colorForRarity(_ rarity: String) -> Color {
+
+func colorForRarity(_ rarity: String) -> LinearGradient {
     switch rarity {
     case "Common", "Uncommon":
-        return .white
+        return LinearGradient(
+            gradient: Gradient(colors: [.white, .white]),
+            startPoint: .trailing,
+            endPoint: .leading
+        )
     case "Rare":
-        return .green
-    case "Rare Holo","Amazing Rare":
-        return .purple
+        return LinearGradient(
+            gradient: Gradient(colors: [.green, .mint]),
+            startPoint: .trailing,
+            endPoint: .leading
+        )
+    case "Rare Holo", "Amazing Rare":
+        return LinearGradient(
+            gradient: Gradient(colors: [Color(red: 1.0, green: 0.85, blue: 0.2), Color(red: 1.0, green: 0.85, blue: 0.2)]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
     case "Rare Holo LV.X", "Rare Holo GX", "Rare Holo EX", "Promo", "Illustration Rare":
-        return .orange
+        return LinearGradient(
+            gradient: Gradient(colors: [.orange, .yellow]),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     case "Rare Secret", "Rare Ultra", "Rare Shiny", "Rare Shiny GX":
-        return .red
+        return LinearGradient(
+            gradient: Gradient(colors: [.red, .pink]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    case "Rare Holo VSTAR":
+        return LinearGradient(
+            gradient: Gradient(colors: [.white, Color(red: 0.6, green: 0.85, blue: 1.0), Color(red: 0.7, green: 1.0, blue: 0.7)]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     case "Rare Rainbow":
-        return .pink
+        return LinearGradient(
+            gradient: Gradient(colors: [.green,.yellow, .orange,.pink, .blue, .purple]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     case "Rare Holo Star", "Rare Prism Star":
-        return .yellow
+        return LinearGradient(
+            gradient: Gradient(colors: [.yellow, .orange]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
     case "LEGEND":
-        return .mint
+        return LinearGradient(
+            gradient: Gradient(colors: [
+                Color(red: 1.0, green: 0.85, blue: 0.2),
+                .black
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
     default:
-        return .primary
+        return LinearGradient(
+            gradient: Gradient(colors: [.gray, .black]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
+
+
+func negZeroCheck(num: Double) -> Double {
+    if num < 0.00 && num > -0.01 {
+        return 0.00
+    }
+    return num
+}
+
 
 func colorForBalance(_ balance: Double) -> Color {
     if balance < 25 {
         return .red
-    }
-    if balance > 50{
-        return .blue
     }
     return .white
 }

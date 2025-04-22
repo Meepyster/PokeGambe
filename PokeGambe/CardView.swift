@@ -19,68 +19,35 @@ struct CardView: View {
     @Binding var isOpeningPack: Bool
     
     func saveCard(_ card: Card) {
-        let savedCard = DBCard(
-            id: card.id,
-            cardTitle: card.cardTitle,
-            name: card.name,
-            baseExperience: card.baseExperience,
-            cardImage: card.cardImage,
-            rarity: card.rarity,
-            value: card.value,
-            realMarketValue: card.realMarketValue,
-            discrepancyRatio: card.discrepancyRatio,
-            subtypes: card.subtypes
-        )
-        modelContext.insert(savedCard)
-        try? modelContext.save()
-        print("Card saved id: \(savedCard.id)")
-        
-        let savedHistCard = HistCard(
-            id: card.id,
-            cardTitle: card.cardTitle,
-            name: card.name,
-            baseExperience: card.baseExperience,
-            cardImage: card.cardImage,
-            rarity: card.rarity,
-            value: card.value,
-            realMarketValue: card.realMarketValue,
-            discrepancyRatio: card.discrepancyRatio,
-            subtypes: card.subtypes
-        )
-        modelContext.insert(savedHistCard)
-        try? modelContext.save()
-        
-        // Optional: show confirmation
-        print("Card saved: \(savedCard.name)")
-        print("Card saved in History: \(savedHistCard.name)")
+        pulledCards.append(card)
+        print("Card Added to pullCards: \(card.name) \(card.id)")
     }
     
     func removeCard(_ card: Card) {
-        if let allCards = try? modelContext.fetch(FetchDescriptor<DBCard>()) {
-            print("All DB Cards in storage:")
-            for c in allCards {
-                print(c.name, c.id)
+        print("All Cards in Pulled Cards")
+        for c in pulledCards{
+            print(c.name, c.id)
             }
-        }
-        if let existing = try? modelContext.fetch(FetchDescriptor<DBCard>()).first(where: {$0.id.uuidString == card.id.uuidString }) {
-            modelContext.delete(existing)
-            try? modelContext.save()
-            print("Card removed: \(existing.name)")
-        } else {
-            print("Card not found in DBCard")
-            print("Card to find id in db: \(card.id)")
-        }
-        
-        if let existingHist = try? modelContext.fetch(FetchDescriptor<HistCard>()).first(where: {$0.id == card.id }) {
-            modelContext.delete(existingHist)
-            try? modelContext.save()
-            print("Card removed: \(existingHist.name)")
-        } else {
-            print("Card not found in HistCard")
-            print("Card to find id in hist: \(card.id)")
-        }
-        print("REMOVED GONE")
+//        if let existing = try? modelContext.fetch(FetchDescriptor<DBCard>()).first(where: {$0.id.uuidString == card.id.uuidString }) {
+//            modelContext.delete(existing)
+//            try? modelContext.save()
+//            print("Card removed: \(existing.name)")
+//        } else {
+//            print("Card not found in DBCard")
+//            print("Card to find id in db: \(card.id)")
+//        }
+//        
+//        if let existingHist = try? modelContext.fetch(FetchDescriptor<HistCard>()).first(where: {$0.id == card.id }) {
+//            modelContext.delete(existingHist)
+//            try? modelContext.save()
+//            print("Card removed: \(existingHist.name)")
+//        } else {
+//            print("Card not found in HistCard")
+//            print("Card to find id in hist: \(card.id)")
+//        }
+//        print("REMOVED GONE")
         pulledCards.removeAll { $0.id == card.id }
+        print("Card to find in pulledCards: \(card.id)")
     }
     
     var body: some View {
@@ -88,13 +55,13 @@ struct CardView: View {
             HStack{
                 Text(card.cardTitle)
                     .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(colorForRarity(card.rarity))
-                    .shadow(radius: 3)
+                    .foregroundStyle(colorForRarity(card.rarity))
+                    .shadow(color: .black ,radius: 1)
                     .bold()
+                    .multilineTextAlignment(.center)
                 Button(action: {
                     if !pulledCards.contains(where: { $0.id == card.id }) && !isOpeningPack {
                         saveCard(card)
-                        pulledCards.append(card)
                         saveNotif = true
                     }
                     else if isOpeningPack && !pulledCards.contains(where: { $0.id == card.id }){
@@ -108,7 +75,8 @@ struct CardView: View {
                     Image(systemName: "square.and.arrow.down.fill")
                         .resizable()
                         .frame(width: 25, height: 33)
-                        .foregroundColor(colorForRarity(card.rarity))
+                        .foregroundStyle(colorForRarity(card.rarity))
+                        .shadow(color: .black ,radius: 1)
                 }
             }
             ZStack{
@@ -162,7 +130,7 @@ struct CardView: View {
                         .padding(.top, 20)
                 }
             }
-            Text("Value: \(String(format: "%.2f", card.value))")
+            Text("$\(String(format: "%.2f", card.value))")
                 .font(.system(size: 18))
                 .foregroundColor(.white)
                 .bold(true)

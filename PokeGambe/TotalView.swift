@@ -12,11 +12,11 @@ struct TotalView: View {
     @Binding var pulledCards: [Card]
 
     var body: some View {
-        Text("Current Pack Value: \(String(format: "%.2f", getTotalValue()))")
+        Text("Current Pack Value  $\(String(format: "%.2f", getTotalValue()))")
             .font(.system(size: 27))
             .foregroundColor(.white)
             .padding(.top)
-            .shadow(radius: 3)
+            .shadow(color: .black ,radius: 1)
             .bold()
     }
 
