@@ -64,6 +64,7 @@ public struct MenuBarView: View {
                 }
                 .padding(.leading, 7)
                 .padding(.bottom, 740)
+                
             }
         }
     }

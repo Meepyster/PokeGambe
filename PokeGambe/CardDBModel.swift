@@ -8,7 +8,7 @@ import Foundation
 import SwiftData
 
 @Model
-class DBCard {
+class DBCard{
     var id: UUID
     var cardTitle: String
     var name: String
@@ -82,3 +82,5 @@ class HistCard: Identifiable{
         self.subtypes = subtypes
     }
 }
+
+

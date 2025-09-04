@@ -11,11 +11,14 @@ struct CardsButtonView: View {
     @Binding var currentQuote: String
     @Binding var cardViewShow: Bool
     @Binding var pulledCards: [Card]
+    @Binding var buttonArmed: Bool
     let action: () -> Void
     var body: some View {
         VStack{
             Button(action: {
-                action()
+                if !isOpeningPack {
+                    action()
+                }
             }) {
                 Text( cardViewShow ?  "Sell Rest" : "Open Pack")
                     .font(.headline).bold(true)

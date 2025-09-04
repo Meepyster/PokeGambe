@@ -8,6 +8,7 @@
 
 import SwiftUI
 import SwiftData
+import CodeScanner
 
 let loadingQuotes = [
     "Shuffling the pixels...",
@@ -38,12 +39,18 @@ let loadingQuotes = [
 ]
 
 struct ContentView: View {
+    @State private var pollingTask: Task<Void, Never>? = nil
+    @State private var isPolling: Bool = false
+    @State private var isTradingA: Bool = false
+    @State private var isTradingB: Bool = false
+    @State private var tradeStatus: Trade?
     @Environment(\.modelContext) var modelContext
     @State private var cards: [Card] = []
     @State private var isOpeningPack = false
     @State private var cardResponse: CardResponse?
     @State private var currentQuote = ""
     @State private var profit: Double = 0
+    @AppStorage("IGN") private var IGN: String = "TONKYWONKY"
     @AppStorage("balance") private var balance: Double = 60
     @State private var showGains: Bool = false
     @State private var gains: Double = 0
@@ -62,6 +69,18 @@ struct ContentView: View {
     @State private var showTotalView: Bool = false
     @AppStorage("dexValue") private var dexValue: Double = 0.00
     @State private var refreshedView: Bool = false
+    @State private var showAddFunds: Bool = false
+    @State private var toAdd: String = "0.00"
+    @State private var buttonArmed: Bool = true
+    @AppStorage("lastUpdated") private var lastUpdated: Double = Date().timeIntervalSince1970
+    
+    // 🔥 New Trade + Scan State
+    @State private var showTradeQR = false
+    @State private var tradeQRCodeURL: URL?
+    @State private var showScanner = false
+    @State private var scannedCode: String?
+    @State private var tradeToShow: Card?
+    @State private var showLargeTradeImage: Bool = false
     var body: some View {
         ZStack{
             LinearGradient(
@@ -80,7 +99,7 @@ struct ContentView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack{
                         ForEach($cards) { $card in
-                            CardView(card: $card, pulledCards: $pulledCards, balance: $balance, isOpeningPack: $isOpeningPack)
+                            CardView(card: $card, pulledCards: $pulledCards, balance:  $balance, isOpeningPack: $isOpeningPack)
                             if cards.isEmpty {
                                 Text("No $s loaded.")
                             }
@@ -103,7 +122,7 @@ struct ContentView: View {
                             .shadow(radius: 3)
                             .bold(true)
                     }
-                    CardsButtonView(isOpeningPack: $isOpeningPack, currentQuote: $currentQuote, cardViewShow: $cardViewShow, pulledCards: $pulledCards, action: getCards)
+                    CardsButtonView(isOpeningPack: $isOpeningPack, currentQuote: $currentQuote, cardViewShow: $cardViewShow, pulledCards: $pulledCards, buttonArmed: $buttonArmed, action: getCards)
                 }
                 if isOpeningPack {
                     VStack{
@@ -117,218 +136,27 @@ struct ContentView: View {
                     }
                 }
             }
-            
             if showHistDex {
-                ZStack{
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color(red: 0.3, green: 0.4, blue: 0.9), Color(red: 0.6, green: 0.8, blue: 1.0)]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .ignoresSafeArea()
-                    .opacity(0.70)
-                    Rectangle()
-                        .foregroundColor(Color(red: 0.9, green: 0.9, blue: 0.9))
-                        .frame(width: 350, height: 670)
-                        .cornerRadius(25)
-                    Text("History Dex")
-                        .font(.system(size: 25))
-                        .foregroundStyle(.blue)
-                        .bold(true)
-                        .padding(.bottom,620)
-                        .shadow(radius: 3)
-                    VStack {
-                            
-                        // Scrollable list of images
-                        ScrollView {
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 4)], spacing: 3) {
-                                ForEach(savedHistCards) { card in
-                                    Button(action: {
-                                        showLargeHistImage.toggle()
-                                        histCardToShow = card
-                                    }) {
-                                        AsyncImage(url: URL(string: card.cardImage)) { image in
-                                            image
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 100, height: 140)
-                                                .cornerRadius(10)
-                                        } placeholder: {
-                                            ProgressView()
-                                                .frame(width: 100, height: 140)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding()
-                        }
-                        .frame(height: 620)
-                        .padding(.top, 100)
-                        
-                        Spacer()
-                    }
-                    Button(action: {
-                        showDex = false
-                        showHistDex = false
-                    }) {
-                        Text("Close")
-                            .font(.headline).bold(true)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 15)
-                            .padding(.vertical, 10)
-                            .background(Color(red: 0.23, green: 0.29, blue: 0.36))
-                            .cornerRadius(25)
-                            .shadow(radius: 3)
-                            .bold(true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.trailing, 10)
-                    .padding(.bottom, 680)
-                    HStack{
-                        Button(action: {
-                            showDex.toggle()
-                            showHistDex.toggle()
-                        }) {
-                            Text("Swap Dex")
-                                .font(.headline).bold(true)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 15)
-                                .background(Color.yellow)
-                                .cornerRadius(25)
-                                .shadow(radius: 3)
-                                .bold(true)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing,20)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading,30)
-                    .padding(.top,720)
-                    if showLargeHistImage {
-                        ZStack{
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .ignoresSafeArea()
-                            .opacity(0.70)
-                            VStack{
-                                Text(histCardToShow!.cardTitle)
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundStyle(colorForRarity(histCardToShow!.rarity))
-                                    .shadow(color: .black ,radius: 1)
-                                    .bold()
-                                    .multilineTextAlignment(.center)
-                                AsyncImage(url: URL(string: histCardToShow!.cardImage)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(height: 520)
-                                            .cornerRadius(10)
-                                    case .failure:
-                                        Image(systemName: "xmark.octagon")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 150, height: 200)
-                                            .foregroundColor(.red)
-                                    @unknown default:
-                                        EmptyView()
-                                    }
-                                }.shadow(radius: 3)
-                                Text("$\(String(format: "%.2f", histCardToShow!.value))")
-                                    .font(.system(size: 23))
-                                    .foregroundColor(.white)
-                                    .bold(true)
-                                    .shadow(radius: 3)
-                            }
-                        }
-                        Button(action: {
-                            showLargeHistImage.toggle()
-                        }) {
-                            Text("Close")
-                                .font(.headline).bold(true)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 15)
-                                .padding(.vertical, 10)
-                                .background(Color(red: 0.23, green: 0.29, blue: 0.36))
-                                .cornerRadius(25)
-                                .shadow(radius: 3)
-                                .bold(true)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 10)
-                        .padding(.bottom, 680)
-                    }
-                }
+                HistDexView(showLargeHistImage: $showLargeHistImage, histCardToShow: $histCardToShow, showHistDex: $showHistDex, showDex: $showDex)
             }
             if showDex {
+                DexView(pollingTask:$pollingTask,action: startTradeA,IGN: $IGN, dexValue: $dexValue, balance: $balance, showLargeImage: $showLargeImage, cardToShow: $cardToShow, showDex: $showDex, showHistDex: $showHistDex, showLargeTradeImage: $showLargeTradeImage, tradeToShow: $tradeToShow, showTradeQR: $showTradeQR, tradeQRCodeURL: $tradeQRCodeURL, pulledCards: $pulledCards, showScanner: $showScanner, isPolling:$isPolling, showConfirm: $showConfirm)
+            }
+            if showScanner {
                 ZStack{
                     LinearGradient(
-                        gradient: Gradient(colors: [Color(red: 0.3, green: 0.4, blue: 0.9), Color(red: 0.6, green: 0.8, blue: 1.0)]),
+                        gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
                         startPoint: .top,
                         endPoint: .bottom
                     )
                     .ignoresSafeArea()
                     .opacity(0.70)
-                    
-                    Rectangle()
-                        .foregroundColor(Color(red: 0.9, green: 0.9, blue: 0.9))
-                        .frame(width: 350, height: 670)
-                        .cornerRadius(25)
-                    HStack{
-                        Text("Trading Dex")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.blue)
-                            .bold(true)
-                            .padding(.bottom,620)
-                            .shadow(radius: 3)
-                        
-                        Text("\(String(format: "%.2f", dexValue))")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.red)
-                            .bold(true)
-                            .padding(.bottom,620)
-                            .shadow(radius: 3)
-                    }
-                    VStack {
-                        
-                        // Scrollable list of images
-                        ScrollView {
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 4)], spacing: 3) {
-                                ForEach(savedCards) { card in
-                                    Button(action: {
-                                        showLargeImage.toggle()
-                                        cardToShow = card
-                                    }) {
-                                        AsyncImage(url: URL(string: card.cardImage)) { image in
-                                            image
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 100, height: 140)
-                                                .cornerRadius(10)
-                                        } placeholder: {
-                                            ProgressView()
-                                                .frame(width: 100, height: 140)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding()
-                        }
-                        .frame(height: 620)
-                        .padding(.top, 100)
-                        
-                        Spacer()
-                    }
+                    CodeScannerView(
+                        codeTypes: [.qr],
+                        completion: handleScan
+                    )
                     Button(action: {
-                        showDex = false
-                        showHistDex = false
+                        showScanner.toggle()
                     }) {
                         Text("Close")
                             .font(.headline).bold(true)
@@ -343,173 +171,26 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.trailing, 10)
                     .padding(.bottom, 680)
-                    HStack{
-                        Button(action: {
-                            showConfirm.toggle()
-                        }) {
-                            Text("TRADE DEX")
-                                .font(.headline).bold(true)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 15)
-                                .padding(.vertical, 10)
-                                .background(Color.red)
-                                .cornerRadius(25)
-                                .shadow(radius: 3)
-                                .bold(true)
-                        }
-                        Button(action: {
-                            showHistDex.toggle()
-                            showDex.toggle()
-                        }) {
-                            Text("Swap Dex")
-                                .font(.headline).bold(true)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 15)
-                                .background(Color.yellow)
-                                .cornerRadius(25)
-                                .shadow(radius: 3)
-                                .bold(true)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing,20)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading,30)
-                    .padding(.top,720)
-                    
-                    
-                    if showConfirm {
-                        LinearGradient(
-                            gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .ignoresSafeArea()
-                        .opacity(0.70)
-                        Text("Are you sure you want to clear and trade your entire PókeDex?")
-                            .font(.system(size: 30))
-                            .bold(true)
-                            .foregroundColor(.white)
-                            .padding()
-                            .padding(.horizontal, 30)
-                            .padding(.bottom,500)
-                            .multilineTextAlignment(.center)
-                            .shadow(radius: 3)
-                        HStack{
-                            Button(action: {
-                                sellDex()
-                            }) {
-                                Text("YES")
-                                    .font(.headline).bold(true)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 40)
-                                    .padding(.vertical, 20)
-                                    .background(Color.red)
-                                    .cornerRadius(25)
-                                    .shadow(radius: 3)
-                                    .bold(true)
-                            }
-                            Button(action: {
-                                showConfirm.toggle()
-                            }) {
-                                Text("NO")
-                                    .font(.headline).bold(true)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 40)
-                                    .padding(.vertical, 20)
-                                    .background(Color.green)
-                                    .cornerRadius(25)
-                                    .shadow(radius: 3)
-                                    .bold(true)
-                            }
-                        }
-                    }
-                    if showLargeImage {
-                        ZStack{
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .ignoresSafeArea()
-                            .opacity(0.70)
-                            VStack{
-                                Text(cardToShow!.cardTitle)
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundStyle(colorForRarity(cardToShow!.rarity))
-                                    .shadow(color: .black ,radius: 1)
-                                    .bold()
-                                    .multilineTextAlignment(.center)
-                                    .multilineTextAlignment(.center)
-                                AsyncImage(url: URL(string: cardToShow!.cardImage)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(height: 520)
-                                            .cornerRadius(10)
-                                    case .failure:
-                                        Image(systemName: "xmark.octagon")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 150, height: 200)
-                                            .foregroundColor(.red)
-                                    @unknown default:
-                                        EmptyView()
-                                    }
-                                }.shadow(radius: 3)
-                                Text("$\(String(format: "%.2f", cardToShow!.value))")
-                                    .font(.system(size: 23))
-                                    .foregroundColor(.white)
-                                    .bold(true)
-                                    .shadow(radius: 3)
-                            }
-                        }
-                        Button(action: {
-                            showLargeImage.toggle()
-                        }) {
-                            Text("Close")
-                                .font(.headline).bold(true)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 15)
-                                .padding(.vertical, 10)
-                                .background(Color(red: 0.23, green: 0.29, blue: 0.36))
-                                .cornerRadius(25)
-                                .shadow(radius: 3)
-                                .bold(true)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 10)
-                        .padding(.bottom, 680)
-                        Button(action: {
-                            if !pulledCards.contains(where: { $0.id == cardToShow!.id }){
-                                showLargeImage.toggle()
-                                balance += cardToShow!.value
-                                dexValue -= cardToShow!.value
-                                dexValue = negZeroCheck(num: dexValue)
-                                modelContext.delete(cardToShow!)
-                                try? modelContext.save()
-                            }
-                        }) {
-                            Text("Sell")
-                                .font(.headline).bold(true)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 15)
-                                .padding(.vertical, 10)
-                                .background(Color.red)
-                                .cornerRadius(25)
-                                .shadow(radius: 3)
-                                .bold(true)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading,30)
-                        .padding(.top,690)
-                    }
                 }
+            }
+            if showTradeQR {
+                QRCodeView(pollingTask:$pollingTask,showTradeQR:$showTradeQR, tradeQRCodeURL: $tradeQRCodeURL, trade:$tradeStatus)
+            }
+            if isTradingA{
+                ZStack{
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+                    .opacity(0.70)
+                }
+                Text("IT FUCKING WORKS")
+                    .font(.system(size: 40, weight: .bold))
+                    .shadow(color: .black ,radius: 1)
+                    .bold()
+                    .multilineTextAlignment(.center)
             }
             if showOptionsMenu {
                 ZStack{
@@ -523,6 +204,7 @@ struct ContentView: View {
                     VStack{
                         Button(action: {
                             showOptionsMenu.toggle()
+                            showAddFunds = true
                         }) {
                             Text("Add Funds")
                                 .font(.headline).bold(true)
@@ -536,6 +218,7 @@ struct ContentView: View {
                         }
                         Button(action: {
                             showOptionsMenu.toggle()
+                            updateBalanceBasedOnTime()
                         }) {
                             Text("History")
                                 .font(.headline).bold(true)
@@ -595,14 +278,57 @@ struct ContentView: View {
                     }
                 }
             }
-        }
+            // neck
+            if showAddFunds{
+                ZStack {
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+                    .opacity(0.70)
+                    Button(action: {
+                        showOptionsMenu = true
+                        showAddFunds = false
+                    }) {
+                        Text("Close")
+                            .font(.headline).bold(true)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 10)
+                            .background(Color(red: 0.23, green: 0.29, blue: 0.36))
+                            .cornerRadius(25)
+                            .shadow(radius: 3)
+                            .bold(true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, 10)
+                    .padding(.bottom, 680)
+                    
+                    Text("Add Funds")
+                        .font(.system(size: 40, weight: .bold, design: .default))
+                        .foregroundColor(.white)
+                        .shadow(radius: 3)
+                        .padding(.bottom, 600)
+                    
+                    Rectangle()
+                        .frame(width: 300, height: 100)
+                        .foregroundColor(.purple)
+                        .cornerRadius(40)
+                        .opacity(0.60)
+                    TextField("Enter Value:", text: $toAdd)
+                }
+            }
+        }.onAppear(perform: updateBalanceBasedOnTime)
     }
 
     private func getCards() {
         if !pulledCards.isEmpty {
             for card in pulledCards {
+                let cardid = UUID()
                 let savedCard = DBCard(
-                    id: card.id,
+                    id: cardid,
                     cardTitle: card.cardTitle,
                     name: card.name,
                     baseExperience: card.baseExperience,
@@ -618,7 +344,7 @@ struct ContentView: View {
                 print("Card saved id: \(savedCard.id)")
                 
                 let savedHistCard = HistCard(
-                    id: card.id,
+                    id: cardid,
                     cardTitle: card.cardTitle,
                     name: card.name,
                     baseExperience: card.baseExperience,
@@ -643,8 +369,8 @@ struct ContentView: View {
             dexValue += card.value
         }
         isOpeningPack = true
-        balance -= 35
-        gains = -35
+        balance -= 30
+        gains = -30
         var change = 0.00
         if cardViewShow {
             for card in pulledCards {
@@ -661,17 +387,13 @@ struct ContentView: View {
                 let result = try await CardService.fetchCards()
                 cardResponse = result
                 cards = cardResponse!.cards
+                buttonArmed = true
+                pulledCards.removeAll()
             } catch {
                 print("Error fetching cards: \(error)")
+                buttonArmed = false
             }
             isOpeningPack = false
-            
-//            if let total = cardResponse?.totalValue {
-//                balance += total
-//                gains = total - 24
-//            }
-            
-            pulledCards.removeAll()
             showGains = false
             cardViewShow = true
         }
@@ -719,6 +441,64 @@ struct ContentView: View {
         }
         showConfirm.toggle()
         clearTempDirectory()
+    }
+    
+    func handleScan(result: Result<ScanResult, ScanError>) {
+        switch result {
+        case .success(let scanResult):
+            scannedCode = scanResult.string
+            showScanner = false
+            print("Scanned code: \(scanResult.string)")
+
+            Task {
+                do {
+                    let card = try await CardService.fetchTradedCard(scanResult.string)
+                    tradeToShow = card
+                    showLargeTradeImage = true
+                    print("Fetched traded card: \(card.cardTitle)")
+                } catch {
+                    print("❌ Failed to fetch traded card: \(error)")
+                }
+            }
+
+        case .failure(let error):
+            print("❌ Scanning failed: \(error.localizedDescription)")
+            showScanner = false
+        }
+    }
+    func startTradeA() {
+        if let card = cardToShow {
+            pollingTask?.cancel()
+            pollingTask = TradeService.startPolling(tradeId: card.id.uuidString) { trade in
+                Task { @MainActor in
+                    tradeStatus = trade
+                    if trade.status == "joined" {
+                        showTradeQR = false
+                        isTradingA = true
+                    }
+                }
+            }
+        }
+    }
+
+    func stopPolling() {
+        pollingTask?.cancel()
+        pollingTask = nil
+    }
+
+    func updateBalanceBasedOnTime() {
+        let now = Date().timeIntervalSince1970
+        let timePassed = now - lastUpdated
+        print(lastUpdated)
+        let minutesPassed = timePassed / 60
+        let increments = minutesPassed / 3
+        print(increments)
+        print(minutesPassed)
+        print(now)
+        if increments > 0 {
+            balance += (Double(increments) * 100).rounded() / 100
+            lastUpdated = now
+        }
     }
 
 }
@@ -791,7 +571,6 @@ func colorForRarity(_ rarity: String) -> LinearGradient {
     }
 }
 
-
 func negZeroCheck(num: Double) -> Double {
     if num < 0.00 && num > -0.01 {
         return 0.00
@@ -807,6 +586,23 @@ func colorForBalance(_ balance: Double) -> Color {
     return .white
 }
 
+struct QRScannerView: View {
+    @Environment(\.dismiss) var dismiss
+    var onScan: (String) -> Void
+
+    var body: some View {
+        CodeScannerView(codeTypes: [.qr]) { result in
+            switch result {
+            case .success(let code):
+                onScan(code.string)
+                dismiss()
+            case .failure(let error):
+                print("Scanning failed: \(error)")
+                dismiss()
+            }
+        }
+    }
+}
 
 #Preview {
     ContentView()

@@ -28,24 +28,6 @@ struct CardView: View {
         for c in pulledCards{
             print(c.name, c.id)
             }
-//        if let existing = try? modelContext.fetch(FetchDescriptor<DBCard>()).first(where: {$0.id.uuidString == card.id.uuidString }) {
-//            modelContext.delete(existing)
-//            try? modelContext.save()
-//            print("Card removed: \(existing.name)")
-//        } else {
-//            print("Card not found in DBCard")
-//            print("Card to find id in db: \(card.id)")
-//        }
-//        
-//        if let existingHist = try? modelContext.fetch(FetchDescriptor<HistCard>()).first(where: {$0.id == card.id }) {
-//            modelContext.delete(existingHist)
-//            try? modelContext.save()
-//            print("Card removed: \(existingHist.name)")
-//        } else {
-//            print("Card not found in HistCard")
-//            print("Card to find id in hist: \(card.id)")
-//        }
-//        print("REMOVED GONE")
         pulledCards.removeAll { $0.id == card.id }
         print("Card to find in pulledCards: \(card.id)")
     }
