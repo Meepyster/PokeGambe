@@ -5,8 +5,8 @@
 //  Created by Ian Forlemu on 9/4/25.
 //
 
-class CardViewModel: ObservableObject {
-    enum State {
-        
-    }
-}
+//class CardViewModel: ObservableObject {
+//    enum State {
+//        
+//    }
+//}

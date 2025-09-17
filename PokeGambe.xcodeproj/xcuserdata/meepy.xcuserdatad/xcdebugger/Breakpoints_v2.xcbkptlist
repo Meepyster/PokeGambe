@@ -7,17 +7,15 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "294824EE-DDF3-4BC6-9A8A-953569AEA464"
+            uuid = "9E172D7F-EF5F-46CA-A7DF-6DBE4A0F83C0"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "PokeGambe/ContentView.swift"
+            filePath = "../../../../../var/folders/l_/3xnhxpkn7jd0c6q1zx259j7h0000gn/T/swift-generated-sources/@__swiftmacro_9PokeGambe14GameStateModelC11pulledCards18ObservationTrackedfMp_.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "22"
-            endingLineNumber = "22"
-            landmarkName = "unknown"
-            landmarkType = "0">
+            startingLineNumber = "1"
+            endingLineNumber = "1">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

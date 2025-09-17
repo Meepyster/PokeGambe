@@ -67,8 +67,8 @@ struct TradeResponse: Codable {
 
 struct Trade: Codable, Identifiable {
     var id: UUID                        // Trade ID (same as Player A’s card id)
-    var userA: String                     // Player A (from_user)
-    var userB: String?                    // Player B (to_user, nil until joined)
+    var userA: String                     // Person starting trade
+    var userB: String?                    // Player joining trade
     var cardA: Card                       // Card offered by Player A
     var cardB: Card?                      // Card offered by Player B (nil until offered)
     var status: String                    // "pending", "joined", "awaiting_confirmations", "completed"

@@ -9,26 +9,25 @@ import SwiftUI
 import SwiftData
 
 struct CardView: View {
+    @Environment(GameStateModel.self) private var gameState
+
     @Binding var card: Card
-    @Binding var pulledCards: [Card]
-    @State private var dragOffset = CGSize.zero
-    @Environment(\.modelContext) var modelContext
+//    @State private var dragOffset = CGSize.zero
     @State private var saveNotif = false
     @State private var loadingAlert = false
-    @Binding var balance: Double
-    @Binding var isOpeningPack: Bool
     
     func saveCard(_ card: Card) {
-        pulledCards.append(card)
+        gameState.pulledCards.append(card)
         print("Card Added to pullCards: \(card.name) \(card.id)")
     }
     
     func removeCard(_ card: Card) {
         print("All Cards in Pulled Cards")
-        for c in pulledCards{
+        for c in gameState.pulledCards{
             print(c.name, c.id)
             }
-        pulledCards.removeAll { $0.id == card.id }
+        gameState.balance += 1
+        gameState.pulledCards.removeAll { $0.id == card.id }
         print("Card to find in pulledCards: \(card.id)")
     }
     
@@ -42,14 +41,14 @@ struct CardView: View {
                     .bold()
                     .multilineTextAlignment(.center)
                 Button(action: {
-                    if !pulledCards.contains(where: { $0.id == card.id }) && !isOpeningPack {
+                    if !gameState.pulledCards.contains(where: { $0.id == card.id }) && !gameState.isOpeningPack {
                         saveCard(card)
                         saveNotif = true
                     }
-                    else if isOpeningPack && !pulledCards.contains(where: { $0.id == card.id }){
+                    else if gameState.isOpeningPack && !gameState.pulledCards.contains(where: { $0.id == card.id }){
                         loadingAlert = true
                     }
-                    else if !isOpeningPack && pulledCards.contains(where: { $0.id == card.id }){
+                    else if !gameState.isOpeningPack && gameState.pulledCards.contains(where: { $0.id == card.id }){
                         removeCard(card)
                         saveNotif = false
                     }
@@ -120,3 +119,4 @@ struct CardView: View {
         }
     }
 }
+

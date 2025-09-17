@@ -10,35 +10,10 @@ import SwiftUI
 import SwiftData
 import CodeScanner
 
-let loadingQuotes = [
-    "Shuffling the pixels...",
-    "Dawg your cooked",
-    "Put the fries in the bag...",
-    "ts ckd br... 🥀",
-    "THIS WILL BE IT",
-    "RAHHHHHHHHHH",
-    "Surely Surley Surley ...",
-    "Drawing power from the Pokéballs...",
-    "Feeding your luck stat...",
-    "Polishing holographics ✨",
-    "Connecting on linkedIn...",
-    "Ensuring cards are fresh...",
-    "Buffing rates...",
-    "DEVS LISTENED",
-    "xd",
-    "You wait here... for what?",
-    "This API is cooked bruh",
-    "Give it like, 10 seconds...",
-    "mimimimimimi......",
-    "Let me knoooooow, let me knooooow",
-    "DoyoulovethewayIdowhenImlovinyourbody?",
-    "AAAHHH AHHHHHH - French Woman",
-    "You will in fact not be the very best...",
-    "😂"
-    
-]
-
 struct ContentView: View {
+    
+    @Bindable var gameState: GameStateModel
+    
     @State private var pollingTask: Task<Void, Never>? = nil
     @State private var isPolling: Bool = false
     @State private var isTradingA: Bool = false
@@ -51,7 +26,7 @@ struct ContentView: View {
     @State private var currentQuote = ""
     @State private var profit: Double = 0
     @AppStorage("IGN") private var IGN: String = "TONKYWONKY"
-    @AppStorage("balance") private var balance: Double = 60
+    @AppStorage("balance") private var balance: Double = 100
     @State private var showGains: Bool = false
     @State private var gains: Double = 0
     @State private var showDex: Bool = false
@@ -99,7 +74,7 @@ struct ContentView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack{
                         ForEach($cards) { $card in
-                            CardView(card: $card, pulledCards: $pulledCards, balance:  $balance, isOpeningPack: $isOpeningPack)
+                            CardView(card: $card)
                             if cards.isEmpty {
                                 Text("No $s loaded.")
                             }
@@ -326,9 +301,8 @@ struct ContentView: View {
     private func getCards() {
         if !pulledCards.isEmpty {
             for card in pulledCards {
-                let cardid = UUID()
                 let savedCard = DBCard(
-                    id: cardid,
+                    id: card.id,
                     cardTitle: card.cardTitle,
                     name: card.name,
                     baseExperience: card.baseExperience,
@@ -344,7 +318,7 @@ struct ContentView: View {
                 print("Card saved id: \(savedCard.id)")
                 
                 let savedHistCard = HistCard(
-                    id: cardid,
+                    id: card.id,
                     cardTitle: card.cardTitle,
                     name: card.name,
                     baseExperience: card.baseExperience,
@@ -604,6 +578,34 @@ struct QRScannerView: View {
     }
 }
 
-#Preview {
-    ContentView()
-}
+let loadingQuotes = [
+    "Shuffling the pixels...",
+    "Dawg your cooked",
+    "Put the fries in the bag...",
+    "ts ckd br... 🥀",
+    "THIS WILL BE IT",
+    "RAHHHHHHHHHH",
+    "Surely Surley Surley ...",
+    "Drawing power from the Pokéballs...",
+    "Feeding your luck stat...",
+    "Polishing holographics ✨",
+    "Connecting on linkedIn...",
+    "Ensuring cards are fresh...",
+    "Buffing rates...",
+    "DEVS LISTENED",
+    "xd",
+    "You wait here... for what?",
+    "This API is cooked bruh",
+    "Give it like, 10 seconds...",
+    "mimimimimimi......",
+    "Let me knoooooow, let me knooooow",
+    "DoyoulovethewayIdowhenImlovinyourbody?",
+    "AAAHHH AHHHHHH - French Woman",
+    "You will in fact not be the very best...",
+    "😂"
+    
+]
+
+//#Preview {
+//    ContentView()
+//}
