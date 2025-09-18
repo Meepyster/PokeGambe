@@ -8,10 +8,7 @@
 import SwiftUI
 
 public struct MenuBarView: View {
-    @Binding var balance: Double
-    @Binding var showGains: Bool
-    @Binding var gains: Double
-    @Binding var showOptionsMenu: Bool
+    @Environment(GameStateModel.self) private var model
     public var body: some View {
         Rectangle()
             .fill(LinearGradient(
@@ -28,19 +25,19 @@ public struct MenuBarView: View {
             .opacity(0.8)
         VStack{
             ZStack {
-                Text("$\(String(format: "%.2f", balance))")
+                Text("$\(String(format: "%.2f", model.balance))")
                     .font(.title2)
-                    .foregroundColor(colorForBalance(balance))
+                    .foregroundColor(colorForBalance(model.balance))
                     .frame(alignment: .center)
                     .padding(.bottom, 735)
                     .shadow(color: .black ,radius: 0.5)
                     .bold(true)
                 
 
-                if showGains {
-                    Text("\(gains >= 0 ? "+" : "")\(String(format: "%.2f", gains))")
+                if model.showGains {
+                    Text("\(model.gains >= 0 ? "+" : "")\(String(format: "%.2f", model.gains))")
                         .font(.title3)
-                        .foregroundColor(gains >= 0 ? .green : .red)
+                        .foregroundColor(model.gains >= 0 ? .green : .red)
                         .bold()
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .padding(.trailing, 20)
@@ -50,7 +47,7 @@ public struct MenuBarView: View {
                 }
                 HStack {
                     Button(action: {
-                        showOptionsMenu.toggle()
+                        model.showOptionsMenu.toggle()
                     }) {
                         Image(systemName: "line.3.horizontal")
                             .resizable()

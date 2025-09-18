@@ -7,47 +7,18 @@
 import SwiftUI
 import SwiftData
 struct DexView: View {
-    //action
-    @Binding var pollingTask: Task<Void, Never>?
-
+    @Environment(GameStateModel.self) private var model
+    
     let action: () -> Void
     
     // SwiftData query
     @Environment(\.modelContext) var modelContext
     @Query var savedCards: [DBCard]
     
-    //ign
-    @Binding var IGN: String
-    // Passed in from ContentView
-    @Binding var dexValue: Double
-    @Binding var balance: Double
-    @Binding var showLargeImage: Bool
-    @Binding var cardToShow: DBCard?
-    @Binding var showDex: Bool
-    @Binding var showHistDex: Bool
-    
-    @Binding var showLargeTradeImage: Bool
-    @Binding var tradeToShow: Card?
-    @Binding var showTradeQR: Bool
-    @Binding var tradeQRCodeURL: URL?
-    
-    @Binding var pulledCards: [Card]
-    
-    @Binding var showScanner: Bool
-    @Binding var isPolling: Bool
-    
-    // Local state
-    @Binding var showConfirm: Bool
     var body: some View {
         ZStack{
-            LinearGradient(
-                gradient: Gradient(colors: [Color(red: 0.3, green: 0.4, blue: 0.9), Color(red: 0.6, green: 0.8, blue: 1.0)]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            BackgroundView()
             .opacity(0.70)
-            
             Rectangle()
                 .foregroundColor(Color(red: 0.9, green: 0.9, blue: 0.9))
                 .frame(width: 350, height: 670)
@@ -60,7 +31,7 @@ struct DexView: View {
                     .padding(.bottom,620)
                     .shadow(radius: 3)
                 
-                Text("\(String(format: "%.2f", dexValue))")
+                Text("\(String(format: "%.2f", model.dexValue))")
                     .font(.system(size: 20))
                     .foregroundStyle(.red)
                     .bold(true)
@@ -74,8 +45,8 @@ struct DexView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 4)], spacing: 3) {
                         ForEach(savedCards) { card in
                             Button(action: {
-                                showLargeImage.toggle()
-                                cardToShow = card
+                                model.showLargeImage.toggle()
+                                model.cardToShow = card
                             }) {
                                 AsyncImage(url: URL(string: card.cardImage)) { image in
                                     image
@@ -96,10 +67,15 @@ struct DexView: View {
                 .padding(.top, 100)
                 
                 Spacer()
+            }.onAppear {
+                print("Dex loaded with \(savedCards.count) cards")
+                for card in savedCards {
+                    print("Card: \(card.cardTitle)")
+                }
             }
             Button(action: {
-                showDex = false
-                showHistDex = false
+                model.showDex = false
+                model.showHistDex = false
             }) {
                 Text("Close")
                     .font(.headline).bold(true)
@@ -116,7 +92,7 @@ struct DexView: View {
             .padding(.bottom, 680)
             HStack{
                 Button(action: {
-                    showConfirm.toggle()
+                    model.showConfirm.toggle()
                 }) {
                     Text("TRADE DEX")
                         .font(.headline).bold(true)
@@ -130,7 +106,7 @@ struct DexView: View {
                 }
                 // 🔥 Scan QR Button
                 Button(action: {
-                    showScanner = true
+                    model.showScanner = true
                 }) {
                     Text("Scan QR")
                         .font(.headline).bold(true)
@@ -142,8 +118,8 @@ struct DexView: View {
                         .shadow(radius: 3)
                 }
                 Button(action: {
-                    showHistDex.toggle()
-                    showDex.toggle()
+                    model.showHistDex.toggle()
+                    model.showDex.toggle()
                 }) {
                     Text("Swap Dex")
                         .font(.headline).bold(true)
@@ -163,7 +139,7 @@ struct DexView: View {
             .padding(.top,720)
             
             
-            if showConfirm {
+            if model.showConfirm {
                 LinearGradient(
                     gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
                     startPoint: .top,
@@ -195,7 +171,7 @@ struct DexView: View {
                             .bold(true)
                     }
                     Button(action: {
-                        showConfirm.toggle()
+                        model.showConfirm.toggle()
                     }) {
                         Text("NO")
                             .font(.headline).bold(true)
@@ -209,7 +185,7 @@ struct DexView: View {
                     }
                 }
             }
-            if showLargeTradeImage {
+            if model.showLargeTradeImage {
                 ZStack{
                     LinearGradient(
                         gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
@@ -219,13 +195,13 @@ struct DexView: View {
                     .ignoresSafeArea()
                     .opacity(0.70)
                     VStack{
-                        Text(tradeToShow!.cardTitle)
+                        Text(model.tradeToShow!.cardTitle)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(colorForRarity(tradeToShow!.rarity))
+                            .foregroundStyle(colorForRarity(model.tradeToShow!.rarity))
                             .shadow(color: .black ,radius: 1)
                             .bold()
                             .multilineTextAlignment(.center)
-                        AsyncImage(url: URL(string: tradeToShow!.cardImage)) { phase in
+                        AsyncImage(url: URL(string: model.tradeToShow!.cardImage)) { phase in
                             switch phase {
                             case .empty:
                                 ProgressView()
@@ -245,7 +221,7 @@ struct DexView: View {
                                 EmptyView()
                             }
                         }.shadow(radius: 3)
-                        Text("$\(String(format: "%.2f", tradeToShow!.value))")
+                        Text("$\(String(format: "%.2f", model.tradeToShow!.value))")
                             .font(.system(size: 23))
                             .foregroundColor(.white)
                             .bold(true)
@@ -253,7 +229,7 @@ struct DexView: View {
                     }
                 }
                 Button(action: {
-                    showLargeTradeImage.toggle()
+                    model.showLargeTradeImage.toggle()
                 }) {
                     Text("Close")
                         .font(.headline).bold(true)
@@ -269,7 +245,7 @@ struct DexView: View {
                 .padding(.trailing, 10)
                 .padding(.bottom, 680)
             }
-            if showLargeImage {
+            if model.showLargeImage {
                 ZStack{
                     LinearGradient(
                         gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
@@ -279,14 +255,14 @@ struct DexView: View {
                     .ignoresSafeArea()
                     .opacity(0.70)
                     VStack{
-                        Text(cardToShow!.cardTitle)
+                        Text(model.cardToShow!.cardTitle)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(colorForRarity(cardToShow!.rarity))
+                            .foregroundStyle(colorForRarity(model.cardToShow!.rarity))
                             .shadow(color: .black ,radius: 1)
                             .bold()
                             .multilineTextAlignment(.center)
                             .multilineTextAlignment(.center)
-                        AsyncImage(url: URL(string: cardToShow!.cardImage)) { phase in
+                        AsyncImage(url: URL(string: model.cardToShow!.cardImage)) { phase in
                             switch phase {
                             case .empty:
                                 ProgressView()
@@ -306,7 +282,7 @@ struct DexView: View {
                                 EmptyView()
                             }
                         }.shadow(radius: 3)
-                        Text("$\(String(format: "%.2f", cardToShow!.value))")
+                        Text("$\(String(format: "%.2f", model.cardToShow!.value))")
                             .font(.system(size: 23))
                             .foregroundColor(.white)
                             .bold(true)
@@ -314,7 +290,7 @@ struct DexView: View {
                     }
                 }
                 Button(action: {
-                    showLargeImage.toggle()
+                    model.showLargeImage.toggle()
                 }) {
                     Text("Close")
                         .font(.headline).bold(true)
@@ -331,12 +307,12 @@ struct DexView: View {
                 .padding(.bottom, 680)
                 HStack{
                     Button(action: {
-                        if !pulledCards.contains(where: { $0.id == cardToShow!.id }){
-                            showLargeImage.toggle()
-                            balance += cardToShow!.value
-                            dexValue -= cardToShow!.value
-                            dexValue = negZeroCheck(num: dexValue)
-                            modelContext.delete(cardToShow!)
+                        if !model.pulledCards.contains(where: { $0.id == model.cardToShow!.id }){
+                            model.showLargeImage.toggle()
+                            model.balance += model.cardToShow!.value
+                            model.dexValue -= model.cardToShow!.value
+                            model.dexValue = negZeroCheck(num: model.dexValue)
+                            modelContext.delete(model.cardToShow!)
                             try? modelContext.save()
                         }
                     }) {
@@ -353,14 +329,14 @@ struct DexView: View {
                     // 🔥 Trade Selected Card Button
                     Button(action: {
                         Task {
-                            if let DBcard = cardToShow {
+                            if let DBcard = model.cardToShow {
                                 do {
                                     let response = try await CardService.postCardForTrade(DBcard)
-                                    tradeQRCodeURL = response.qrCode
-                                    let response2 = try await TradeService.createTrade(userA: IGN, cardA: DBcard.toCard())
+                                    model.tradeQRCodeURL = response.qrCode
+                                    let response2 = try await TradeService.createTrade(userA: model.IGN, cardA: DBcard.toCard())
                                     print(response2)
-                                    showTradeQR = true
-                                    isPolling = true
+                                    model.showTradeQR = true
+                                    model.isPolling = true
                                     action()
                                 }
                                     catch {
@@ -386,14 +362,14 @@ struct DexView: View {
         }
     }
     func sellDex() {
-        balance += dexValue
-        dexValue = 0.00
+        model.balance += model.dexValue
+        model.dexValue = 0.00
         do {
             try modelContext.delete(model: DBCard.self)
         } catch {
             print("Failed to clear")
         }
-        showConfirm.toggle()
+        model.showConfirm.toggle()
         clearTempDirectory()
     }
     

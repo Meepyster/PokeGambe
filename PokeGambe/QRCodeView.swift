@@ -6,10 +6,7 @@
 //
 import SwiftUI
 struct QRCodeView: View {
-    @Binding var pollingTask: Task<Void, Never>?
-    @Binding var showTradeQR: Bool
-    @Binding var tradeQRCodeURL: URL?
-    @Binding var trade: Trade?
+    @Environment(GameStateModel.self) private var model
     var body: some View {
         ZStack{
             LinearGradient(
@@ -20,8 +17,8 @@ struct QRCodeView: View {
             .ignoresSafeArea()
             .opacity(0.90)
             Button(action: {
-                showTradeQR.toggle()
-                pollingTask?.cancel()
+                model.showTradeQR.toggle()
+                model.pollingTask?.cancel()
             }) {
                 Text("Close")
                     .font(.headline).bold(true)
@@ -43,7 +40,7 @@ struct QRCodeView: View {
                     .bold()
                     .multilineTextAlignment(.center)
                 
-                AsyncImage(url: tradeQRCodeURL) { image in
+                AsyncImage(url: model.tradeQRCodeURL) { image in
                     image.resizable()
                         .scaledToFit()
                         .frame(width: 200, height: 200)

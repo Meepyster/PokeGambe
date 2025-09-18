@@ -8,20 +8,12 @@ import SwiftUI
 import SwiftData
 
 struct HistDexView: View {
+    @Environment(GameStateModel.self) private var model
     @Query var savedHistCards: [HistCard]
-    @Binding var showLargeHistImage: Bool
-    @Binding var histCardToShow: HistCard?
-    @Binding var showHistDex: Bool
-    @Binding var showDex: Bool
     var body: some View {
         ZStack{
-            LinearGradient(
-                gradient: Gradient(colors: [Color(red: 0.3, green: 0.4, blue: 0.9), Color(red: 0.6, green: 0.8, blue: 1.0)]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            .opacity(0.70)
+            BackgroundView()
+                .opacity(0.70)
             Rectangle()
                 .foregroundColor(Color(red: 0.9, green: 0.9, blue: 0.9))
                 .frame(width: 350, height: 670)
@@ -39,8 +31,8 @@ struct HistDexView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 4)], spacing: 3) {
                         ForEach(savedHistCards) { card in
                             Button(action: {
-                                showLargeHistImage.toggle()
-                                histCardToShow = card
+                                model.showLargeHistImage.toggle()
+                                model.histCardToShow = card
                             }) {
                                 AsyncImage(url: URL(string: card.cardImage)) { image in
                                     image
@@ -63,8 +55,8 @@ struct HistDexView: View {
                 Spacer()
             }
             Button(action: {
-                showDex = false
-                showHistDex = false
+                model.showDex = false
+                model.showHistDex = false
             }) {
                 Text("Close")
                     .font(.headline).bold(true)
@@ -81,8 +73,8 @@ struct HistDexView: View {
             .padding(.bottom, 680)
             HStack{
                 Button(action: {
-                    showDex.toggle()
-                    showHistDex.toggle()
+                    model.showDex.toggle()
+                    model.showHistDex.toggle()
                 }) {
                     Text("Swap Dex")
                         .font(.headline).bold(true)
@@ -100,23 +92,18 @@ struct HistDexView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading,30)
             .padding(.top,720)
-            if showLargeHistImage {
+            if model.showLargeHistImage {
                 ZStack{
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color(red: 0.3, green: 0.3, blue: 0.7), Color(red: 0.5, green: 0.6, blue: 0.8)]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .ignoresSafeArea()
-                    .opacity(0.70)
+                    BackgroundView()
+                        .opacity(0.70)
                     VStack{
-                        Text(histCardToShow!.cardTitle)
+                        Text(model.histCardToShow!.cardTitle)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(colorForRarity(histCardToShow!.rarity))
+                            .foregroundStyle(colorForRarity(model.histCardToShow!.rarity))
                             .shadow(color: .black ,radius: 1)
                             .bold()
                             .multilineTextAlignment(.center)
-                        AsyncImage(url: URL(string: histCardToShow!.cardImage)) { phase in
+                        AsyncImage(url: URL(string: model.histCardToShow!.cardImage)) { phase in
                             switch phase {
                             case .empty:
                                 ProgressView()
@@ -136,7 +123,7 @@ struct HistDexView: View {
                                 EmptyView()
                             }
                         }.shadow(radius: 3)
-                        Text("$\(String(format: "%.2f", histCardToShow!.value))")
+                        Text("$\(String(format: "%.2f", model.histCardToShow!.value))")
                             .font(.system(size: 23))
                             .foregroundColor(.white)
                             .bold(true)
@@ -144,7 +131,7 @@ struct HistDexView: View {
                     }
                 }
                 Button(action: {
-                    showLargeHistImage.toggle()
+                    model.showLargeHistImage.toggle()
                 }) {
                     Text("Close")
                         .font(.headline).bold(true)

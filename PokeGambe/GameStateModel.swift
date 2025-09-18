@@ -12,8 +12,6 @@ class GameStateModel: ObservableObject {
     var pulledCards: [Card] = []
     var isOpeningPack: Bool = false
 
-    // MARK: - Global App State (migrated from @State/@Environment/@Query in Views)
-
     // Tasks & polling
     var pollingTask: Task<Void, Never>? = nil
     var isPolling: Bool = false
@@ -69,11 +67,7 @@ class GameStateModel: ObservableObject {
     var toAdd: String = "0.00"
     var buttonArmed: Bool = true
 
-    // Saved (SwiftData) entities. Populate via fetch helpers below.
-    var savedCards: [DBCard] = []
-    var savedHistCards: [HistCard] = []
-
-    // 🔥 New Trade + Scan State
+    // New Trade + Scan State
     var showTradeQR: Bool = false
     var tradeQRCodeURL: URL?
     var showScanner: Bool = false
@@ -119,25 +113,9 @@ class GameStateModel: ObservableObject {
     }
 
     /// Fetch and cache DBCard entities into `savedCards`.
-    func fetchSavedCards() {
-        guard let context = modelContext else { return }
-        do {
-            let descriptor = FetchDescriptor<DBCard>()
-            self.savedCards = try context.fetch(descriptor)
-        } catch {
-            // Handle/log error as needed
-        }
-    }
+
 
     /// Fetch and cache HistCard entities into `savedHistCards`.
-    func fetchSavedHistCards() {
-        guard let context = modelContext else { return }
-        do {
-            let descriptor = FetchDescriptor<HistCard>()
-            self.savedHistCards = try context.fetch(descriptor)
-        } catch {
-            // Handle/log error as needed
-        }
-    }
+
 }
 

@@ -8,7 +8,7 @@
 import Foundation
 
 class TradeService {
-    static let baseURL = "https://4e41e0ea5250.ngrok-free.app"
+    static let baseURL = "https://6be15b0e9aed.ngrok-free.app"
     
     // MARK: - Codable request bodies
     struct CreateTradeRequest: Codable {

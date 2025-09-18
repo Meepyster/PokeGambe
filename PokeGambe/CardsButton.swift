@@ -7,20 +7,16 @@
 
 import SwiftUI
 struct CardsButtonView: View {
-    @Binding var isOpeningPack: Bool
-    @Binding var currentQuote: String
-    @Binding var cardViewShow: Bool
-    @Binding var pulledCards: [Card]
-    @Binding var buttonArmed: Bool
+    @Environment(GameStateModel.self) private var model
     let action: () -> Void
     var body: some View {
         VStack{
             Button(action: {
-                if !isOpeningPack {
+                if !model.isOpeningPack {
                     action()
                 }
             }) {
-                Text( cardViewShow ?  "Sell Rest" : "Open Pack")
+                Text( model.cardViewShow ?  "Sell Rest" : "Open Pack")
                     .font(.headline).bold(true)
                     .foregroundColor(.white)
                     .padding(.horizontal, 40)

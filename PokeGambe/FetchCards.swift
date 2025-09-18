@@ -23,7 +23,7 @@ import Foundation
 
 class CardService {
     static func fetchCards() async throws -> CardResponse {
-        let url = URL(string: "https://4e41e0ea5250.ngrok-free.app/test-10-cards")!
+        let url = URL(string: "https://6be15b0e9aed.ngrok-free.app/test-10-cards")!
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -43,7 +43,7 @@ class CardService {
         return decoded
     }
     static func postCardForTrade(_ card: DBCard) async throws -> TradeResponse {
-        guard let url = URL(string: "https://4e41e0ea5250.ngrok-free.app/postCard") else {
+        guard let url = URL(string: "https://6be15b0e9aed.ngrok-free.app/postCard") else {
             throw URLError(.badURL)
         }
 
@@ -79,7 +79,7 @@ class CardService {
         return try decoder.decode(TradeResponse.self, from: data)
     }
     static func fetchTradedCard(_ cardID: String) async throws -> Card {
-        let url = URL(string: "https://4e41e0ea5250.ngrok-free.app/trade-cards/\(cardID)")!
+        let url = URL(string: "https://6be15b0e9aed.ngrok-free.app/trade-cards/\(cardID)")!
         let (data, _) = try await URLSession.shared.data(from: url)
         return try JSONDecoder().decode(Card.self, from: data)
     }
